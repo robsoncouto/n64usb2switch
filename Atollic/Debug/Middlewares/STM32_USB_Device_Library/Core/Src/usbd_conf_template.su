@@ -1,0 +1,17 @@
+usbd_conf_template.c:35:20:USBD_LL_Init	16	static
+usbd_conf_template.c:47:20:USBD_LL_DeInit	16	static
+usbd_conf_template.c:59:20:USBD_LL_Start	16	static
+usbd_conf_template.c:71:20:USBD_LL_Stop	16	static
+usbd_conf_template.c:86:20:USBD_LL_OpenEP	16	static
+usbd_conf_template.c:103:20:USBD_LL_CloseEP	16	static
+usbd_conf_template.c:117:20:USBD_LL_FlushEP	16	static
+usbd_conf_template.c:131:20:USBD_LL_StallEP	16	static
+usbd_conf_template.c:145:20:USBD_LL_ClearStallEP	16	static
+usbd_conf_template.c:160:9:USBD_LL_IsStallEP	16	static
+usbd_conf_template.c:174:20:USBD_LL_SetUSBAddress	16	static
+usbd_conf_template.c:191:20:USBD_LL_Transmit	24	static
+usbd_conf_template.c:210:20:USBD_LL_PrepareReceive	24	static
+usbd_conf_template.c:228:10:USBD_LL_GetRxDataSize	16	static
+usbd_conf_template.c:257:7:USBD_static_malloc	16	static
+usbd_conf_template.c:268:6:USBD_static_free	16	static
+usbd_conf_template.c:278:6:USBD_LL_Delay	16	static

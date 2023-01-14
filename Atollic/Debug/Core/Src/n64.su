@@ -1,0 +1,12 @@
+stm32f4xx_ll_gpio.h:800:26:LL_GPIO_IsInputPinSet	16	static
+stm32f4xx_ll_gpio.h:881:22:LL_GPIO_SetOutputPin	16	static
+stm32f4xx_ll_gpio.h:910:22:LL_GPIO_ResetOutputPin	16	static
+n64.c:26:11:n64_8bit_2_32bit	32	static
+n64.c:44:6:n64_pin_out	8	static
+n64.c:54:6:n64_pin_in	8	static
+n64.c:64:6:n64_start_transmission	24	static
+n64.c:81:6:n64_init	16	static
+n64.c:150:9:reverse	16	static
+n64.c:157:6:n64schedule_update	4	static
+n64.c:161:6:n64_update	24	static
+n64.c:243:6:n64_update_buffer	24	static

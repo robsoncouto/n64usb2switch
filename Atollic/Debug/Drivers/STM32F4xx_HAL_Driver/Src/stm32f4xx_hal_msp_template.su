@@ -1,0 +1,4 @@
+stm32f4xx_hal_msp_template.c:50:6:HAL_MspInit	4	static
+stm32f4xx_hal_msp_template.c:61:6:HAL_MspDeInit	4	static
+stm32f4xx_hal_msp_template.c:72:6:HAL_PPP_MspInit	4	static
+stm32f4xx_hal_msp_template.c:83:6:HAL_PPP_MspDeInit	4	static
