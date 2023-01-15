@@ -1,3 +1,5 @@
+stm32f4xx_ll_gpio.h:881:22:LL_GPIO_SetOutputPin	16	static
+stm32f4xx_ll_gpio.h:910:22:LL_GPIO_ResetOutputPin	16	static
 stm32f4xx_it.c:46:6:NMI_Handler	4	static
 stm32f4xx_it.c:55:6:HardFault_Handler	4	static
 stm32f4xx_it.c:68:6:MemManage_Handler	4	static
@@ -7,8 +9,8 @@ stm32f4xx_it.c:107:6:SVC_Handler	4	static
 stm32f4xx_it.c:116:6:DebugMon_Handler	4	static
 stm32f4xx_it.c:125:6:PendSV_Handler	4	static
 stm32f4xx_it.c:134:6:SysTick_Handler	16	static
-stm32f4xx_it.c:166:6:OTG_FS_IRQHandler	8	static
-stm32f4xx_it.c:180:6:OTG_FS_WKUP_IRQHandler	4	static
-stm32f4xx_it.c:237:6:EXTI4_IRQHandler	8	static
-stm32f4xx_it.c:248:13:GetPointerData	16	static
-stm32f4xx_it.c:313:6:USART3_IRQHandler	8	static
+stm32f4xx_it.c:169:6:OTG_FS_IRQHandler	8	static
+stm32f4xx_it.c:183:6:OTG_FS_WKUP_IRQHandler	4	static
+stm32f4xx_it.c:240:6:EXTI4_IRQHandler	8	static
+stm32f4xx_it.c:251:13:GetReportData	16	static
+stm32f4xx_it.c:273:6:TIM1_BRK_TIM9_IRQHandler	8	static

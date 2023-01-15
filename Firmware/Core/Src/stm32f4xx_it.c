@@ -30,10 +30,10 @@
 extern PCD_HandleTypeDef hpcd;
 uint8_t HID_Buffer[8];
 extern USBD_HandleTypeDef USBD_Device;
-extern UART_HandleTypeDef huart3;
+extern TIM_HandleTypeDef htim9;
 /* Private function prototypes ----------------------------------------------- */
 /* Private functions --------------------------------------------------------- */
-static void GetPointerData(uint8_t * pbuf);
+static void GetReportData(uint8_t * pbuf);
 /******************************************************************************/
 /* Cortex-M4 Processor Exceptions Handlers */
 /******************************************************************************/
@@ -133,21 +133,24 @@ void PendSV_Handler(void)
   */
 void SysTick_Handler(void)
 {
-  static __IO uint32_t counter = 0;
+  static __IO uint32_t hid_report_counter = 0;
   HAL_IncTick();
 
   /* check Joystick state every polling interval (10ms) */
-  if (counter++ == USBD_HID_GetPollingInterval(&USBD_Device))
+  if (hid_report_counter++ == USBD_HID_GetPollingInterval(&USBD_Device))
   {
-    GetPointerData(HID_Buffer);
+    GetReportData(HID_Buffer);
 
     /* send data though IN endpoint */
     //if ((HID_Buffer[0] != 0) || (HID_Buffer[1] != 0)|| (HID_Buffer[2] != 0))
     //{
     USBD_HID_SendReport(&USBD_Device, HID_Buffer, 8);
     //}
-    counter = 0;
+    hid_report_counter = 0;
   }
+
+
+
 }
 
 /******************************************************************************/
@@ -245,48 +248,9 @@ void EXTI4_IRQHandler(void)
   * @param  pbuf: Pointer to report
   * @retval None
   */
-static void GetPointerData(uint8_t * pbuf)
+static void GetReportData(uint8_t * pbuf)
 {
-  //int8_t x = 0, y = 0;
-//
-//  switch (BSP_JOY_GetState())
-//  {
-//  case JOY_LEFT:
-//    x -= CURSOR_STEP;
-//    break;
-//
-//  case JOY_RIGHT:
-//    x += CURSOR_STEP;
-//    break;
-//
-//  case JOY_UP:
-//    y -= CURSOR_STEP;
-//    break;
-//
-//  case JOY_DOWN:
-//    y += CURSOR_STEP;
-//    break;
-//
-//  default:
-//    break;
-//  }
-//y += CURSOR_STEP;
-
-
-/*
-// Joystick HID report structure. We have an input and an output.
-typedef struct {
-	uint16_t Button; // 16 buttons; see JoystickButtons_t for bit mapping
-	uint8_t  HAT;    // HAT switch; one nibble w/ unused nibble
-	uint8_t  LX;     // Left  Stick X
-	uint8_t  LY;     // Left  Stick Y
-	uint8_t  RX;     // Right Stick X
-	uint8_t  RY;     // Right Stick Y
-	uint8_t  VendorSpec;
-} USB_JoystickReport_Input_t;
-	 * */
-
-
+  //clears buffer
   pbuf[0] = 0;
   pbuf[1] = 0;
   pbuf[2] = 0;
@@ -295,28 +259,26 @@ typedef struct {
   pbuf[5] = 0;
   pbuf[6] = 0;
 
-  //n64_update();
-  n64_update_buffer(pbuf);
-  n64schedule_update();
+  //fills buffer with n64 hid report
+  n64_prepare_hid_report(pbuf);
 
 }
 
 
+
+
 /**
-  * @brief  This function handles PPP interrupt request.
-  * @param  None
-  * @retval None
+  * @brief This function handles TIM1 break interrupt and TIM9 global interrupt.
   */
-/* void PPP_IRQHandler(void) { } */
-
-
-void USART3_IRQHandler(void)
+void TIM1_BRK_TIM9_IRQHandler(void)
 {
-  /* USER CODE BEGIN USART3_IRQn 0 */
+  /* USER CODE BEGIN TIM1_BRK_TIM9_IRQn 0 */
 
-  /* USER CODE END USART3_IRQn 0 */
-  HAL_UART_IRQHandler(&huart3);
-  /* USER CODE BEGIN USART3_IRQn 1 */
-
-  /* USER CODE END USART3_IRQn 1 */
+  /* USER CODE END TIM1_BRK_TIM9_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim9);
+  /* USER CODE BEGIN TIM1_BRK_TIM9_IRQn 1 */
+  LL_GPIO_SetOutputPin(GPIOA, GPIO_PIN_2);
+  LL_GPIO_ResetOutputPin(GPIOA, GPIO_PIN_2);
+  n64schedule_update();
+  /* USER CODE END TIM1_BRK_TIM9_IRQn 1 */
 }

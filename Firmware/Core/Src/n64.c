@@ -1,17 +1,10 @@
 #include "n64.h"
 #include  "main.h"
 
-
-
-static LL_GPIO_InitTypeDef  LL_GPIO;
-
-uint32_t cmd = 0x11111117;
-uint32_t response;
-
 n64_controller_t controller;
 
 
-static uint16_t packet[] = { 0x0100, 0x0100, 0x0100, 0x0100, 0x0100, 0x0100,0x0100, 0x01fc, 0x01e0 };//0x01e0 };
+static uint16_t packet[] = { 0x0100, 0x0100, 0x0100, 0x0100, 0x0100, 0x0100,0x0100, 0x01fc, 0x01e0 };
 static LL_GPIO_InitTypeDef LL_GPIO_Ini;
 
 static uint16_t in_buff[40] = { 0 };
@@ -20,7 +13,7 @@ uint32_t respons = 0;
 
 extern UART_HandleTypeDef huart1;
 
-static uint8_t n64_read=0;
+static uint8_t n64_read_flag=0;
 
 
 uint32_t  n64_8bit_2_32bit(uint8_t input){
@@ -41,52 +34,15 @@ uint32_t  n64_8bit_2_32bit(uint8_t input){
 
 }
 
-void n64_pin_out(void){
-	LL_GPIO.Mode  = LL_GPIO_MODE_OUTPUT;
-	LL_GPIO.Pull  = LL_GPIO_OUTPUT_PUSHPULL;
-	LL_GPIO.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-
-	LL_GPIO.Pin = LL_GPIO_PIN_4;
-	LL_GPIO_Init(GPIOA, &LL_GPIO);
-}
-
-
-void n64_pin_in(void){
-	LL_GPIO.Mode  = LL_GPIO_MODE_INPUT;
-	LL_GPIO.Pull  = LL_GPIO_PULL_UP;
-	LL_GPIO.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-
-	LL_GPIO.Pin = LL_GPIO_PIN_4;
-	LL_GPIO_Init(GPIOA, &LL_GPIO);
-}
-
-
-void n64_start_transmission(void){
-
-	TIMx_CLK_ENABLE();
-
-	ErrorStatus returned;
-	LL_GPIO.Mode  = LL_GPIO_MODE_OUTPUT;
-	LL_GPIO.Pull  = LL_GPIO_OUTPUT_PUSHPULL;
-	LL_GPIO.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-
-	LL_GPIO.Pin = LL_GPIO_PIN_5;
-	returned = LL_GPIO_Init(GPIOA, &LL_GPIO);
-
-	uint32_t sysclk = HAL_RCC_GetSysClockFreq();
-	uint32_t Fpclk1 = HAL_RCC_GetPCLK1Freq();
-
-}
 
 void n64_init(void){
-	ErrorStatus returned;
 	LL_GPIO_Ini.Mode = LL_GPIO_MODE_OUTPUT;
 	LL_GPIO_Ini.Pull = LL_GPIO_PULL_UP;
 	LL_GPIO_Ini.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
 	LL_GPIO_Ini.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
 
 	LL_GPIO_Ini.Pin = LL_GPIO_PIN_8;
-	returned = LL_GPIO_Init(GPIOA, &LL_GPIO_Ini);
+	LL_GPIO_Init(GPIOA, &LL_GPIO_Ini);
 	LL_GPIO_SetOutputPin(GPIOA, GPIO_PIN_8);
 
 
@@ -95,57 +51,11 @@ void n64_init(void){
 	LL_GPIO_Ini.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
 	LL_GPIO_Ini.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
 	LL_GPIO_Ini.Pin = LL_GPIO_PIN_10;
-		returned = LL_GPIO_Init(GPIOA, &LL_GPIO_Ini);
-		LL_GPIO_SetOutputPin(GPIOA, GPIO_PIN_10);
+	LL_GPIO_Init(GPIOA, &LL_GPIO_Ini);
+	LL_GPIO_SetOutputPin(GPIOA, GPIO_PIN_10);
 
 
 }
-
-/*uint32_t n64_send(uint32_t data){
-
-	n64_pin_out();
-	uint32_t response = 0;
-
-	//send data
-	for (int8_t i=31;i>=0;i--){
-		if(data&(1<<i)){
-			LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_4);
-		}else{
-			LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_4);
-		}
-		delay_1ms();
-	}
-
-	//send stop
-	LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_4);
-	delay_1ms();
-	LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_4);
-	n64_pin_in();
-
-	return;
-
-	while(LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_4));
-	read_delay_1ms();
-	read_delay_1ms();
-
-	for (int8_t i=0;i<32;i++){
-		//LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
-		//read_delay_1ms();
-		//LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_5);
-		LL_GPIO_TogglePin(GPIOA, LL_GPIO_PIN_5);
-			if(LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_4)){
-				response|=(1<<i);
-			}
-			read_delay_1ms();
-			read_delay_1ms();
-			read_delay_1ms();
-			read_delay_1ms();
-		}
-
-	return response;
-
-
-}*/
 
 uint8_t reverse(uint8_t b) {
    b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
@@ -155,32 +65,23 @@ uint8_t reverse(uint8_t b) {
 }
 
 void n64schedule_update(void){
-	n64_read = 1;
+	n64_read_flag = 1;
 }
 
-void n64_update(void){
-	if(!n64_read){
+int16_t map(int16_t x, int16_t in_min, int16_t in_max, int16_t out_min, int16_t out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+void n64_main_loop(void){
+	static int8_t min_X=0,max_X=0,max_Y=0,min_Y=0;
+	int16_t X=0,Y=0;
+	if(!n64_read_flag){
 		return;
 	}
 	LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_10);
-	//__disable_irq();
-	//response = n64_send(0x11111117);
-	//controller = * ((n64_controller_t*) &response);
-	//__enable_irq();
 	HAL_StatusTypeDef status;
-
-	n64_controller_t pad;
-	uint32_t response;
-
-	// HAL_GPIO_TogglePin(LEDx_GPIO_PORT, LED2_PIN);
-	/* Insert delay 100 ms */
-	//n64_update();
-	//HAL_GPIO_TogglePin(LEDx_GPIO_PORT, LED3_PIN);
-	//LL_GPIO_TogglePin(GPIOA, LL_GPIO_PIN_4);
-	//LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_4);
- 	HAL_HalfDuplex_EnableTransmitter(&huart1);
-	//status=HAL_UART_Transmit(&huart3,packet, sizeof(packet),1000);
-	status = HAL_UART_Transmit(&huart1, (uint8_t*) packet, 8, 2);
+	HAL_HalfDuplex_EnableTransmitter(&huart1);
+	status = HAL_UART_Transmit(&huart1, (uint8_t*) packet, 8, 1);
 	if (status != HAL_OK) {
 		Error_Handler();
 	}
@@ -192,28 +93,10 @@ void n64_update(void){
 	while(!LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_9));
 	LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_10);
 
-	//while ((__HAL_UART_GET_FLAG(&huart1, UART_FLAG_TXE) ? SET : RESET) == RESET);
-	//__disable_irq();
-	//LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_8);
-	//for (int i = 0; i < 5; i++) {
-	//	asm("nop");
-	//}
 	HAL_HalfDuplex_EnableReceiver(&huart1);
-	//LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_8);
-	//for (int i = 0; i < 10; i++) {
-	//	asm("nop");
-	//}
-	//__enable_irq();
 
-
-	//HAL_UART_Transmit(&huart3,packet, sizeof(packet),1000);
-
-//	for (int i = 0; i < 10; i++) {
-//		asm("nop");
-//	}
-	status = HAL_UART_Receive(&huart1, (uint8_t *) in_buff, 33, 2);
+	status = HAL_UART_Receive(&huart1, (uint8_t *) in_buff, 33, 1);
 	if (status == HAL_OK) {
-		//Error_Handler();
 		respons = 0;
 		for (int i = 0; i < 32; i++) {
 			if (in_buff[i] & (1 << 5))
@@ -223,27 +106,36 @@ void n64_update(void){
 		controller = *((n64_controller_t*) &respons);
 		controller.AxisX = reverse(controller.AxisX);
 		controller.AxisY = reverse(controller.AxisY);
+
 		controller.AxisY = (uint8_t)(((uint16_t)controller.AxisY+1)*-1);
 
+		if(controller.AxisX<min_X) min_X = controller.AxisX;
+		if(controller.AxisX>max_X) max_X = controller.AxisX;
+		if(controller.AxisY<min_Y) min_Y = controller.AxisY;
+		if(controller.AxisY>max_Y) max_Y = controller.AxisY;
 
+		//compensates genuine controllers range
+		//X = (127.0/83.0)*controller.AxisX;
+		//Y = (127.0/83.0)*controller.AxisY;
+
+		X=map(controller.AxisX,min_X,max_X,-128,127);
+		Y=map(controller.AxisY,min_Y,max_Y,-128,127);
+
+		controller.AxisX = (int8_t)X;
+		controller.AxisY = (int8_t)Y;
 
 	}
 	else if (status == HAL_TIMEOUT){
 		__HAL_UART_FLUSH_DRREGISTER(&huart1);
 	}
-	n64_read=0;
-	//HAL_USART_Transmit(&huart3,packet, sizeof(packet),1000);
-
-	//HAL_Delay(10);
-	/* Insert delay 100 ms */
-	//HAL_Delay(1000);
+	n64_read_flag=0;
 
 	}
 
-void n64_update_buffer(uint8_t* buffer){
+void n64_prepare_hid_report(uint8_t* buffer){
 	uint16_t sw_buttons=0;
 
-	uint8_t RightX =127,RightY =127, LeftX=127,LeftY=127;
+	uint8_t RightX =127,RightY =127;
 
 	if(controller.ButtonA) sw_buttons|=SWITCH_A;
 	if(controller.ButtonB) sw_buttons|=SWITCH_B;
@@ -292,23 +184,16 @@ void n64_update_buffer(uint8_t* buffer){
 				hat = 0x08;
 	}
 
+	//LeftY = (uint8_t) ((uint16_t)(controller.AxisY+128));
 
 
-	//int16_t helperX, helperY;
-	LeftY = (uint8_t) ((uint16_t)(controller.AxisY+128));
-	//LeftY = (uint8_t) (((int16_t)LeftY) - 255);
-	//LeftX =
-	//LeftX = (uint8_t)(((int8_t) reverse(controller.AxisY))+128);
-
-
-
-	if((controller.ButtonL) &(controller.ButtonLeft)){
+	if((controller.ButtonL) &(controller.ButtonZ)&(controller.ButtonLeft)){
 		sw_buttons|=SWITCH_CAPTURE;
 	}
-	if((controller.ButtonL) &(controller.ButtonUp)){
+	if((controller.ButtonL) &(controller.ButtonZ)&(controller.ButtonUp)){
 		sw_buttons|=SWITCH_SELECT;
 	}
-	if((controller.ButtonL) &(controller.ButtonRight)){
+	if((controller.ButtonL) &(controller.ButtonZ)&(controller.ButtonRight)){
 		sw_buttons|=SWITCH_HOME;
 	}
 

@@ -51,5 +51,7 @@
 #define KEY_BUTTON_EXTI_IRQn                 EXTI4_IRQn
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
+
+uint32_t PCLK1_clock(void);
 void Error_Handler(void);
 #endif /* __MAIN_H */

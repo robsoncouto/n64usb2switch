@@ -7,8 +7,6 @@
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
 
-void n64_start_transmission(void);
-
 void delay_1ms(void);
 
 
@@ -65,16 +63,18 @@ uint32_t n64_send(uint32_t);
 /* Definition for TIMx clock resources */
 
 /* Definition for TIMx's NVIC */
-#define TIMx_IRQn                      TIM3_IRQn
-#define TIMx_IRQHandler                TIM3_IRQHandler
+#define TIMx_IRQn                      TIM9_IRQn
+#define TIMx_IRQHandler                TIM9_IRQHandler
 
 
-#define TIMx                           TIM3
-#define TIMx_CLK_ENABLE()              __HAL_RCC_TIM3_CLK_ENABLE()
+#define TIMx                           TIM9
+#define TIMx_CLK_ENABLE()              __HAL_RCC_TIM9_CLK_ENABLE()
 
-void n64_update(void);
+void n64_main_loop(void);
 
 void n64_init(void);
+void n64_prepare_hid_report(uint8_t* buffer);
+void n64schedule_update(void);
 
 extern TIM_HandleTypeDef    TimHandle;
 #endif

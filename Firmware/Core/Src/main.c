@@ -39,14 +39,15 @@ extern PCD_HandleTypeDef hpcd;
 
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
-void ButtonInit(void);
 
 /* Private functions ---------------------------------------------------------*/
 UART_HandleTypeDef huart1;
-//static uint8_t packet[4] = {0x08,0x08,0x08,0xE8};
-//static uint8_t packet[] = {0x08,0x08,0x08,0xE8,0xff};
+
+TIM_HandleTypeDef htim9;
+LL_GPIO_InitTypeDef  LL_GPIOt;
 
 static void MX_USART1_UART_Init(void);
+static void MX_TIM9_Init(void);
 /**
  * @brief  Main program
  * @param  None
@@ -69,18 +70,26 @@ int main(void) {
 	HAL_Init();
 
 	/* GPIO Ports Clock Enable */
-	__HAL_RCC_GPIOH_CLK_ENABLE()
-	;
-	__HAL_RCC_GPIOA_CLK_ENABLE()
-	;
-	uint32_t sysclock = SystemCoreClock;
+	__HAL_RCC_GPIOH_CLK_ENABLE();
+	__HAL_RCC_GPIOA_CLK_ENABLE();
 
 	/* Configure the system clock to 100 MHz */
 	SystemClock_Config();
 
 	/* -1- Enable GPIO Clock (to be able to program the configuration registers) */
-	LEDx_GPIO_CLK_ENABLE()
-	;
+	LEDx_GPIO_CLK_ENABLE();
+
+	LL_GPIOt.Mode  = LL_GPIO_MODE_OUTPUT;
+	LL_GPIOt.Pull  = LL_GPIO_OUTPUT_PUSHPULL;
+	LL_GPIOt.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+
+	LL_GPIOt.Pin = LL_GPIO_PIN_2;
+	LL_GPIO_Init(GPIOA, &LL_GPIOt);
+
+	LL_GPIO_SetOutputPin(GPIOA, GPIO_PIN_2);
+	HAL_Delay(100);
+	LL_GPIO_ResetOutputPin(GPIOA, GPIO_PIN_2);
+
 
 	/* -2- Configure IO in output push-pull mode to drive external LEDs */
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -89,8 +98,6 @@ int main(void) {
 
 	GPIO_InitStruct.Pin = LED2_PIN | LED3_PIN;
 	HAL_GPIO_Init(LEDx_GPIO_PORT, &GPIO_InitStruct);
-
-	ButtonInit();
 
 	/* Init Device Library */
 	USBD_Init(&USBD_Device, &HID_Desc, 0);
@@ -101,17 +108,15 @@ int main(void) {
 	/* Start Device Process */
 	USBD_Start(&USBD_Device);
 
-	sysclock = SystemCoreClock;
-
-	//n64_start_transmission();
 	n64_init();
 
 
 	MX_USART1_UART_Init();
+	MX_TIM9_Init();
 
 	/* -3- Toggle IO in an infinite loop */
 	while (1) {
-		n64_update();
+		n64_main_loop();
 	}
 }
 #if 0
@@ -243,33 +248,6 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif
 
-/**
- * @}
- */
-
-/**
- * @}
- */
-
-void ButtonInit(void) {
-#if 0
-	GPIO_InitTypeDef GPIO_InitStruct;
-
-	/* Enable the BUTTON clock */
-	KEY_BUTTON_GPIO_CLK_ENABLE();
-
-	/* Configure Button pin as input with External interrupt */
-	GPIO_InitStruct.Pin = KEY_BUTTON0_PIN|KEY_BUTTON1_PIN;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
-
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-	HAL_GPIO_Init(KEY_BUTTON_GPIO_PORT, &GPIO_InitStruct);
-#endif
-	/* Enable and set Button EXTI Interrupt to the lowest priority */
-	//HAL_NVIC_SetPriority((IRQn_Type) (KEY_BUTTON_EXTI_IRQn), 0x0F, 0x00);
-	//HAL_NVIC_EnableIRQ((IRQn_Type) (KEY_BUTTON_EXTI_IRQn));
-}
 
 void Error_Handler(void) {
 	/* USER CODE BEGIN Error_Handler_Debug */
@@ -295,7 +273,7 @@ static void MX_USART1_UART_Init(void) {
 
 	/* USER CODE END USART1_Init 1 */
 	huart1.Instance = USART1;
-	huart1.Init.BaudRate = 3150000;
+	huart1.Init.BaudRate = 3000000;//3150000;
 	huart1.Init.WordLength = UART_WORDLENGTH_9B;
 	huart1.Init.StopBits = UART_STOPBITS_2;
 	huart1.Init.Parity = UART_PARITY_NONE;
@@ -309,4 +287,55 @@ static void MX_USART1_UART_Init(void) {
 
 	/* USER CODE END USART1_Init 2 */
 
+}
+
+static void MX_TIM9_Init(void)
+{
+
+  /* USER CODE BEGIN TIM9_Init 0 */
+
+  /* USER CODE END TIM9_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+
+  /* USER CODE BEGIN TIM9_Init 1 */
+  uint32_t apb2_clock = PCLK1_clock();
+  /* USER CODE END TIM9_Init 1 */
+  htim9.Instance = TIM9;
+  htim9.Init.Prescaler = 999u;
+  htim9.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim9.Init.Period = apb2_clock/((htim9.Init.Prescaler+1)*(200));
+  htim9.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim9.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim9) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim9, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  HAL_TIM_Base_Start_IT(&htim9);
+  /* USER CODE BEGIN TIM9_Init 2 */
+
+  /* USER CODE END TIM9_Init 2 */
+
+}
+
+uint32_t PCLK1_clock(void)
+{
+  /* Get PCLK1 frequency */
+  uint32_t pclk1 = HAL_RCC_GetPCLK1Freq();
+  /* Get PCLK1 prescaler */
+  if((RCC->CFGR & RCC_CFGR_PPRE1) == 0)
+  {
+    /* PCLK1 prescaler equal to 1 => TIMCLK = PCLK1 */
+    return (pclk1);
+  }
+  else
+  {
+    /* PCLK1 prescaler different from 1 => TIMCLK = 2 * PCLK1 */
+    return(2 * pclk1);
+  }
 }

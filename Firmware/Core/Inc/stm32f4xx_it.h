@@ -49,6 +49,8 @@ void OTG_HS_WKUP_IRQHandler(void);
 #endif
 void EXTI4_IRQHandler(void);
 
+void TIM1_BRK_TIM9_IRQHandler(void);
+
 #ifdef __cplusplus
 }
 #endif
