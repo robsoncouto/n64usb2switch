@@ -15,6 +15,7 @@ extern UART_HandleTypeDef huart1;
 
 static uint8_t n64_read_flag=0;
 
+static uint8_t missing_controller_counter=0;
 
 uint32_t  n64_8bit_2_32bit(uint8_t input){
 
@@ -36,24 +37,17 @@ uint32_t  n64_8bit_2_32bit(uint8_t input){
 
 
 void n64_init(void){
-	LL_GPIO_Ini.Mode = LL_GPIO_MODE_OUTPUT;
-	LL_GPIO_Ini.Pull = LL_GPIO_PULL_UP;
-	LL_GPIO_Ini.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
-	LL_GPIO_Ini.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
 
-	LL_GPIO_Ini.Pin = LL_GPIO_PIN_8;
-	LL_GPIO_Init(GPIOA, &LL_GPIO_Ini);
-	LL_GPIO_SetOutputPin(GPIOA, GPIO_PIN_8);
-
-
+	//Init LED pin
+	__HAL_RCC_GPIOC_CLK_ENABLE();
 	LL_GPIO_Ini.Mode = LL_GPIO_MODE_OUTPUT;
 	LL_GPIO_Ini.Pull = LL_GPIO_PULL_UP;
 	LL_GPIO_Ini.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
 	LL_GPIO_Ini.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-	LL_GPIO_Ini.Pin = LL_GPIO_PIN_10;
-	LL_GPIO_Init(GPIOA, &LL_GPIO_Ini);
-	LL_GPIO_SetOutputPin(GPIOA, GPIO_PIN_10);
 
+	LL_GPIO_Ini.Pin = LL_GPIO_PIN_13;
+	LL_GPIO_Init(GPIOC, &LL_GPIO_Ini);
+	LL_GPIO_SetOutputPin(GPIOC, GPIO_PIN_13);
 
 }
 
@@ -73,25 +67,21 @@ int16_t map(int16_t x, int16_t in_min, int16_t in_max, int16_t out_min, int16_t 
 }
 
 void n64_main_loop(void){
-	static int8_t min_X=0,max_X=0,max_Y=0,min_Y=0;
+	static int8_t min_X=-40,max_X=40,max_Y=40,min_Y=-40;
 	int16_t X=0,Y=0;
 	if(!n64_read_flag){
 		return;
 	}
-	LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_10);
 	HAL_StatusTypeDef status;
 	HAL_HalfDuplex_EnableTransmitter(&huart1);
 	status = HAL_UART_Transmit(&huart1, (uint8_t*) packet, 8, 1);
 	if (status != HAL_OK) {
 		Error_Handler();
 	}
-	//while ((__HAL_UART_GET_FLAG(&huart1, UART_FLAG_TXE) ? SET : RESET) == RESET);
 
 	huart1.Instance->DR = (uint16_t)(0x01e0 & 0x01FFU);
-	//if (UART_WaitOnFlagUntilTimeout(huart, UART_FLAG_TXE, RESET, tickstart, 2) != HAL_OK)
-	//while ((__HAL_UART_GET_FLAG(&huart1, UART_FLAG_TC) ? SET : RESET) == RESET);
+	//Wait transmission of the HIGH signal before switch to receiver
 	while(!LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_9));
-	LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_10);
 
 	HAL_HalfDuplex_EnableReceiver(&huart1);
 
@@ -114,23 +104,28 @@ void n64_main_loop(void){
 		if(controller.AxisY<min_Y) min_Y = controller.AxisY;
 		if(controller.AxisY>max_Y) max_Y = controller.AxisY;
 
-		//compensates genuine controllers range
-		//X = (127.0/83.0)*controller.AxisX;
-		//Y = (127.0/83.0)*controller.AxisY;
 
 		X=map(controller.AxisX,min_X,max_X,-128,127);
 		Y=map(controller.AxisY,min_Y,max_Y,-128,127);
 
 		controller.AxisX = (int8_t)X;
 		controller.AxisY = (int8_t)Y;
-
+		LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_13);
+		missing_controller_counter = 0;
 	}
 	else if (status == HAL_TIMEOUT){
 		__HAL_UART_FLUSH_DRREGISTER(&huart1);
+		if(missing_controller_counter<10)
+			missing_controller_counter++;
 	}
 	n64_read_flag=0;
-
+	if(missing_controller_counter==10){
+		LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_13);
+	}else{
+		LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
 	}
+
+}
 
 void n64_prepare_hid_report(uint8_t* buffer){
 	uint16_t sw_buttons=0;
@@ -183,8 +178,6 @@ void n64_prepare_hid_report(uint8_t* buffer){
 			default:
 				hat = 0x08;
 	}
-
-	//LeftY = (uint8_t) ((uint16_t)(controller.AxisY+128));
 
 
 	if((controller.ButtonL) &(controller.ButtonZ)&(controller.ButtonLeft)){

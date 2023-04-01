@@ -32,7 +32,7 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-static GPIO_InitTypeDef GPIO_InitStruct;
+
 
 USBD_HandleTypeDef USBD_Device;
 extern PCD_HandleTypeDef hpcd;
@@ -42,31 +42,17 @@ static void SystemClock_Config(void);
 
 /* Private functions ---------------------------------------------------------*/
 UART_HandleTypeDef huart1;
-
 TIM_HandleTypeDef htim9;
-LL_GPIO_InitTypeDef  LL_GPIOt;
 
-static void MX_USART1_UART_Init(void);
-static void MX_TIM9_Init(void);
+static void USART1_UART_Init(void);
+static void TIM9_Init(void);
 /**
  * @brief  Main program
  * @param  None
  * @retval None
  */
 int main(void) {
-	/* This sample code shows how to use GPIO HAL API to toggle LED1, LED2, LED3 and LED4 IOs
-	 in an infinite loop. */
 
-	/* STM32F4xx HAL library initialization:
-	 - Configure the Flash prefetch
-	 - Systick timer is configured by default as source of time base, but user
-	 can eventually implement his proper time base source (a general purpose
-	 timer for example or other time source), keeping in mind that Time base
-	 duration should be kept 1ms since PPP_TIMEOUT_VALUEs are defined and
-	 handled in milliseconds basis.
-	 - Set NVIC Group Priority to 4
-	 - Low Level Initialization
-	 */
 	HAL_Init();
 
 	/* GPIO Ports Clock Enable */
@@ -76,28 +62,6 @@ int main(void) {
 	/* Configure the system clock to 100 MHz */
 	SystemClock_Config();
 
-	/* -1- Enable GPIO Clock (to be able to program the configuration registers) */
-	LEDx_GPIO_CLK_ENABLE();
-
-	LL_GPIOt.Mode  = LL_GPIO_MODE_OUTPUT;
-	LL_GPIOt.Pull  = LL_GPIO_OUTPUT_PUSHPULL;
-	LL_GPIOt.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-
-	LL_GPIOt.Pin = LL_GPIO_PIN_2;
-	LL_GPIO_Init(GPIOA, &LL_GPIOt);
-
-	LL_GPIO_SetOutputPin(GPIOA, GPIO_PIN_2);
-	HAL_Delay(100);
-	LL_GPIO_ResetOutputPin(GPIOA, GPIO_PIN_2);
-
-
-	/* -2- Configure IO in output push-pull mode to drive external LEDs */
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_PULLUP;
-	GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
-
-	GPIO_InitStruct.Pin = LED2_PIN | LED3_PIN;
-	HAL_GPIO_Init(LEDx_GPIO_PORT, &GPIO_InitStruct);
 
 	/* Init Device Library */
 	USBD_Init(&USBD_Device, &HID_Desc, 0);
@@ -110,9 +74,8 @@ int main(void) {
 
 	n64_init();
 
-
-	MX_USART1_UART_Init();
-	MX_TIM9_Init();
+	USART1_UART_Init();
+	TIM9_Init();
 
 	/* -3- Toggle IO in an infinite loop */
 	while (1) {
@@ -263,15 +226,8 @@ void Error_Handler(void) {
  * @param None
  * @retval None
  */
-static void MX_USART1_UART_Init(void) {
+static void USART1_UART_Init(void) {
 
-	/* USER CODE BEGIN USART1_Init 0 */
-
-	/* USER CODE END USART1_Init 0 */
-
-	/* USER CODE BEGIN USART1_Init 1 */
-
-	/* USER CODE END USART1_Init 1 */
 	huart1.Instance = USART1;
 	huart1.Init.BaudRate = 3000000;//3150000;
 	huart1.Init.WordLength = UART_WORDLENGTH_9B;
@@ -283,28 +239,19 @@ static void MX_USART1_UART_Init(void) {
 	if (HAL_HalfDuplex_Init(&huart1) != HAL_OK) {
 		Error_Handler();
 	}
-	/* USER CODE BEGIN USART1_Init 2 */
-
-	/* USER CODE END USART1_Init 2 */
 
 }
 
-static void MX_TIM9_Init(void)
+static void TIM9_Init(void)
 {
-
-  /* USER CODE BEGIN TIM9_Init 0 */
-
-  /* USER CODE END TIM9_Init 0 */
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
 
-  /* USER CODE BEGIN TIM9_Init 1 */
   uint32_t apb2_clock = PCLK1_clock();
-  /* USER CODE END TIM9_Init 1 */
   htim9.Instance = TIM9;
-  htim9.Init.Prescaler = 999u;
+  htim9.Init.Prescaler = 999u; //1000 prescaller
   htim9.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim9.Init.Period = apb2_clock/((htim9.Init.Prescaler+1)*(200));
+  htim9.Init.Period = apb2_clock/((htim9.Init.Prescaler+1)*(120)); //120 Hz
   htim9.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim9.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim9) != HAL_OK)
@@ -317,9 +264,6 @@ static void MX_TIM9_Init(void)
     Error_Handler();
   }
   HAL_TIM_Base_Start_IT(&htim9);
-  /* USER CODE BEGIN TIM9_Init 2 */
-
-  /* USER CODE END TIM9_Init 2 */
 
 }
 

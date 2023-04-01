@@ -141,11 +141,7 @@ void SysTick_Handler(void)
   {
     GetReportData(HID_Buffer);
 
-    /* send data though IN endpoint */
-    //if ((HID_Buffer[0] != 0) || (HID_Buffer[1] != 0)|| (HID_Buffer[2] != 0))
-    //{
     USBD_HID_SendReport(&USBD_Device, HID_Buffer, 8);
-    //}
     hid_report_counter = 0;
   }
 
@@ -239,7 +235,6 @@ void OTG_HS_WKUP_IRQHandler(void)
   */
 void EXTI4_IRQHandler(void)
 {
-  HAL_GPIO_EXTI_IRQHandler(KEY_BUTTON0_PIN);
 }
 
 

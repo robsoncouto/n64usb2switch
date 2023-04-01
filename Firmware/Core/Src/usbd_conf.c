@@ -671,42 +671,6 @@ static void SystemClockConfig_STOP(void)
   */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  if (GPIO_Pin == KEY_BUTTON0_PIN)
-  {
-    if ((((USBD_HandleTypeDef *) hpcd.pData)->dev_remote_wakeup == 1) &&
-        (((USBD_HandleTypeDef *) hpcd.pData)->dev_state ==
-         USBD_STATE_SUSPENDED))
-    {
-      if ((&hpcd)->Init.low_power_enable)
-      {
-        /* Reset SLEEPDEEP bit of Cortex System Control Register */
-        SCB->SCR &=
-          (uint32_t) ~
-          ((uint32_t) (SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
-
-        SystemClockConfig_STOP();
-      }
-
-      /* Ungate PHY clock */
-      __HAL_PCD_UNGATE_PHYCLOCK((&hpcd));
-
-      /* Activate Remote wakeup */
-      HAL_PCD_ActivateRemoteWakeup((&hpcd));
-
-      /* Remote wakeup delay */
-      HAL_Delay(10);
-
-      /* Disable Remote wakeup */
-      HAL_PCD_DeActivateRemoteWakeup((&hpcd));
-
-      /* change state to configured */
-      ((USBD_HandleTypeDef *) hpcd.pData)->dev_state = USBD_STATE_CONFIGURED;
-
-      /* Change remote_wakeup feature to 0 */
-      ((USBD_HandleTypeDef *) hpcd.pData)->dev_remote_wakeup = 0;
-      remotewakeupon = 1;
-    }
-  }
 }
 
 /**
